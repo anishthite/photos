@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>architecture · photos.thite.site</title>
+  <link rel="icon" href="data:,">
+  <style>
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-roman-line-figures.woff") format("woff");
+      font-style: normal; font-weight: 400; font-display: swap;
+    }
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-bold-line-figures.woff") format("woff");
+      font-style: normal; font-weight: 700; font-display: swap;
+    }
+    :root {
+      color-scheme: light;
+      --ink: #2d251e; --muted: #716657; --paper: #fbf8ef;
+      --field: #f1eadc; --line: #d8c8aa; --soft-line: rgba(138,108,68,.18);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--field); }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 14% 8%, rgba(255,255,255,.72), transparent 28rem),
+        linear-gradient(90deg, rgba(112,82,42,.022) 1px, transparent 1px),
+        linear-gradient(var(--paper), var(--field));
+      background-size: auto, 30px 30px, auto;
+      color: var(--ink);
+      font: 17px/1.56 et-book, Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    }
+    a { color: inherit; }
+    .page { width: min(1000px, calc(100% - 40px)); margin: 0 auto; padding: clamp(36px,7vw,82px) 0 76px; }
+    .hero { margin-bottom: clamp(30px,5vw,50px); padding-bottom: clamp(20px,4vw,34px); border-bottom: 1px solid var(--line); }
+    h1 { margin: 0; font-size: clamp(2.6rem,9vw,5.5rem); line-height: .85; letter-spacing: -.025em; font-weight: 400; }
+    .hero p { color: var(--muted); margin: .8rem 0 0; max-width: 60ch; }
+
+    .lane {
+      border: 1px solid var(--line);
+      background: rgba(255,252,244,.55);
+      border-radius: 8px;
+      padding: 1.1rem 1.3rem 1.3rem;
+      margin-bottom: 0;
+    }
+    .lane h2 { margin: 0 0 .9rem; font-size: 1.05rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    .stack { display: grid; gap: .7rem; }
+    .box {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 6px;
+      padding: .7rem .95rem;
+    }
+    .box b { display: block; font-weight: 700; }
+    .box code, .flow code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .82em; background: var(--field); padding: .08em .35em; border-radius: 4px; }
+    .box span { color: var(--muted); font-size: .92rem; }
+    .arrow { text-align: center; color: var(--muted); font-size: 1.4rem; line-height: 1; margin: .55rem 0; position: relative; }
+    .arrow em { font-style: normal; font-size: .8rem; font-family: inherit; background: var(--paper); padding: 0 .6em; color: var(--muted); }
+
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+    @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+
+    .flow { margin-top: clamp(30px,5vw,50px); border-top: 1px solid var(--line); padding-top: 1.4rem; }
+    .flow h2 { margin: 0 0 1rem; font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 400; letter-spacing: -.01em; }
+    .flow ol { margin: 0; padding-left: 1.4rem; }
+    .flow li { margin-bottom: .55rem; }
+    .pending { color: #9a5b2e; }
+    .status { margin-top: 1.6rem; border-top: 1px solid var(--soft-line); padding-top: 1rem; color: var(--muted); font-size: .95rem; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>architecture</h1>
+      <p>How <b>photos.thite.site</b> works — a fully static photo library: files on disk become a JSON index, and Cloudflare Pages serves the whole thing. No server, no database, no build step.</p>
+    </header>
+
+    <div class="cols">
+      <section class="lane">
+        <h2>Your machine</h2>
+        <div class="stack">
+          <div class="box"><b>photos/</b><span>originals on disk — subfolders become albums (photos/hike, photos/city…)</span></div>
+          <div class="arrow">↓ <em>scripts/add_photos.sh</em></div>
+          <div class="box"><b>scripts/build_library.py</b><span>scans photos/, reads EXIF DateTimeOriginal via Pillow (mtime fallback) → <code>data/photos.json</code></span></div>
+          <div class="arrow">↓</div>
+          <div class="box"><b>index.html</b><span>the entire app — day-grouped grid, search, lightbox — plus et-book fonts, thite.site style</span></div>
+          <div class="arrow">↓ <em>wrangler pages deploy .</em></div>
+        </div>
+      </section>
+
+      <section class="lane">
+        <h2>Cloudflare</h2>
+        <div class="stack">
+          <div class="box"><b>Pages project “photos”</b><span>serves the static folder at <code>photos-erv.pages.dev</code> — live now</span></div>
+          <div class="arrow">↓ <em>custom domain attached via API</em></div>
+          <div class="box"><b>thite.site zone (DNS)</b><span class="pending">needs one CNAME: photos → photos-erv.pages.dev (proxied) — token here lacks DNS scope, so add it in the dash or hand me a DNS-scoped API token</span></div>
+          <div class="arrow">↓ <em>once DNS exists, Cloudflare auto-issues SSL</em></div>
+          <div class="box"><b>photos.thite.site</b><span>HTTPS on Cloudflare’s edge, cached worldwide</span></div>
+          <div class="arrow">↓</div>
+          <div class="box"><b>Visitor’s browser</b><span>fetches index.html + data/photos.json, renders the grid client-side</span></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="flow">
+      <h2>Add-a-photo flow</h2>
+      <ol>
+        <li><code>scripts/add_photos.sh ~/Desktop/vacation</code> — copies images into <code>photos/</code> (optional album name becomes a subfolder)</li>
+        <li><code>build_library.py</code> regenerates <code>data/photos.json</code> with dates, albums, timestamps</li>
+        <li><code>wrangler pages deploy</code> ships the folder to Pages (~2 s)</li>
+        <li>Site picks it up on next load — <code>fetch('data/photos.json', no-store)</code></li>
+      </ol>
+      <p class="status"><b>Source of truth:</b> <a href="https://github.com/anishthite/photos">github.com/anishthite/photos</a> (code + scripts; photo contents gitignored). <b>Status:</b> pages.dev URL live · custom domain pending the one DNS record.</p>
+    </section>
+  </main>
+</body>
+</html>
