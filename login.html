@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>login · photos</title>
+  <link rel="icon" href="data:,">
+  <style>
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-roman-line-figures.woff") format("woff");
+      font-style: normal; font-weight: 400; font-display: swap;
+    }
+    :root {
+      color-scheme: light;
+      --ink: #2d251e; --muted: #716657; --paper: #fbf8ef;
+      --field: #f1eadc; --line: #d8c8aa;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--field); }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      background:
+        radial-gradient(circle at 14% 8%, rgba(255,255,255,.72), transparent 28rem),
+        linear-gradient(90deg, rgba(112,82,42,.022) 1px, transparent 1px),
+        linear-gradient(var(--paper), var(--field));
+      background-size: auto, 30px 30px, auto;
+      color: var(--ink);
+      font: 17px/1.56 et-book, Palatino, "Book Antiqua", Georgia, serif;
+    }
+    form {
+      width: min(340px, calc(100% - 40px));
+      border: 1px solid var(--line); border-radius: 8px;
+      background: rgba(255,252,244,.6); padding: 2rem 1.8rem;
+      text-align: center;
+    }
+    h1 { margin: 0 0 1.4rem; font-size: 2.6rem; line-height: .9; letter-spacing: -.02em; font-weight: 400; }
+    input {
+      width: 100%; font: inherit; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 6px;
+      background: var(--paper); padding: .55rem .8rem; margin-bottom: .8rem;
+      outline: none;
+    }
+    input:focus { border-color: var(--muted); }
+    button {
+      width: 100%; font: inherit; font-weight: 700; cursor: pointer;
+      color: var(--paper); background: var(--ink);
+      border: 0; border-radius: 6px; padding: .55rem .8rem;
+    }
+    .err { color: #9a5b2e; min-height: 1.4em; margin: .7rem 0 0; font-size: .95rem; }
+  </style>
+</head>
+<body>
+  <form id="f">
+    <h1>photos</h1>
+    <input type="password" id="pw" placeholder="password" autocomplete="current-password" autofocus>
+    <button type="submit">open the library</button>
+    <p class="err" id="err"></p>
+  </form>
+  <script>
+    const next = new URLSearchParams(location.search).get("next") || "/";
+    document.querySelector("#f").addEventListener("submit", async e => {
+      e.preventDefault();
+      const body = new FormData();
+      body.set("password", document.querySelector("#pw").value);
+      const res = await fetch("/api/login", { method: "POST", body });
+      if (res.ok) location.href = next.startsWith("/") ? next : "/";
+      else document.querySelector("#err").textContent = "wrong password.";
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # photos
 
-A Google Photos-style library, in the style of [thite.site](https://thite.site) — et-book serif, paper background, day-grouped justified grid, lightbox viewer, and simple search. Plain static HTML/JS, no build step.
+A Google Photos-style library, in the style of [thite.site](https://thite.site) — et-book serif, paper background, day-grouped grid, lightbox viewer, and simple search. Static shell on Cloudflare Pages, originals in a **private R2 bucket**, whole site behind a **password gate** (Pages Functions + HMAC-signed cookie).
 
 ## Adding photos
 
@@ -31,11 +31,23 @@ wrangler pages deploy . --project-name photos --branch main --commit-dirty=true
 
 ## Layout
 
-- `index.html` — the whole app (markup, styles, viewer)
-- `photos/` — your originals (gitignored contents)
+- `index.html` — the photo app (grid, search, lightbox)
+- `login.html` — password gate page
+- `functions/` — Pages Functions: `_middleware.js` (auth gate), `api/login.js` (session cookie), `media/[[key]].js` (R2 proxy with Range support)
+- `photos/` — local originals (gitignored; the live copies are in R2)
 - `data/photos.json` — generated library index
 - `scripts/build_library.py` — scanner that builds the index
+- `scripts/add_photos.sh` — import → index → R2 → deploy in one command
 - `assets/fonts/` — et-book, borrowed from thite.site
+
+## Security model
+
+- R2 bucket `photos-library` is private — no public URL, reachable only through the `PHOTOS` Pages binding
+- Every route except `/login` requires a signed cookie (`HMAC-SHA256(expiry, password)`, 30-day expiry, HttpOnly + Secure)
+- Password lives in the `PHOTOS_PASSWORD` Pages secret — never in the repo or client bundle
+- Media keys are validated (no traversal, known extensions only)
+
+To rotate the password: `wrangler pages secret put PHOTOS_PASSWORD --project-name photos` (existing sessions die immediately, since cookies are HMAC'd with the old password).
 
 ## Features
 

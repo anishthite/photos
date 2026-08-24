@@ -46,6 +46,12 @@ fi
 
 python3 scripts/build_library.py
 
+echo "uploading new/changed objects to r2…"
+find photos -type f ! -name ".gitkeep" | while read -r f; do
+  key="${f#photos/}"
+  wrangler r2 object put "photos-library/$key" --file "$f" --content-type "$(file -b --mime-type "$f")" --remote >/dev/null
+done
+
 if [ "$DEPLOY" = "1" ]; then
   wrangler pages deploy . --project-name photos --branch main --commit-dirty=true
 fi

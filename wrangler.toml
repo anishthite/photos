@@ -1,0 +1,6 @@
+name = "photos"
+pages_build_output_dir = "."
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "photos-library"

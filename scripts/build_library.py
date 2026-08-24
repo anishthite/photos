@@ -52,7 +52,7 @@ def main():
             if ext not in IMAGE_EXTS | VIDEO_EXTS:
                 continue
             full = os.path.join(dirpath, name)
-            rel = os.path.relpath(full, ROOT).replace(os.sep, "/")
+            rel = os.path.relpath(full, PHOTOS_DIR).replace(os.sep, "/")
             stat = os.stat(full)
             taken = exif_date(full) if ext in IMAGE_EXTS else None
             dt = taken or datetime.fromtimestamp(stat.st_mtime)
@@ -60,7 +60,7 @@ def main():
             if album == ".":
                 album = ""
             photos.append({
-                "src": rel,
+                "src": "media/" + rel,
                 "name": os.path.splitext(name)[0],
                 "date": dt.strftime("%Y-%m-%d"),
                 "ts": int(dt.timestamp()),
