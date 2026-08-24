@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>add · photos</title>
+  <link rel="icon" href="data:,">
+  <style>
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-roman-line-figures.woff") format("woff");
+      font-style: normal; font-weight: 400; font-display: swap;
+    }
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-bold-line-figures.woff") format("woff");
+      font-style: normal; font-weight: 700; font-display: swap;
+    }
+    :root {
+      color-scheme: light;
+      --ink: #2d251e; --muted: #716657; --paper: #fbf8ef;
+      --field: #f1eadc; --line: #d8c8aa; --soft-line: rgba(138,108,68,.18);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--field); }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 14% 8%, rgba(255,255,255,.72), transparent 28rem),
+        linear-gradient(90deg, rgba(112,82,42,.022) 1px, transparent 1px),
+        linear-gradient(var(--paper), var(--field));
+      background-size: auto, 30px 30px, auto;
+      background-attachment: fixed;
+      color: var(--ink);
+      font: 17px/1.56 et-book, Palatino, "Book Antiqua", Georgia, serif;
+    }
+    a { color: inherit; }
+    .page { width: min(720px, calc(100% - 40px)); margin: 0 auto; padding: clamp(36px,7vw,82px) 0 76px; }
+    .hero { margin-bottom: clamp(24px,4vw,40px); padding-bottom: clamp(16px,3vw,28px); border-bottom: 1px solid var(--line); }
+    h1 { margin: 0; font-size: clamp(2.6rem,9vw,5rem); line-height: .85; letter-spacing: -.025em; font-weight: 400; }
+    .back { color: var(--muted); font-size: .95rem; }
+
+    .zone {
+      border: 1.5px dashed var(--line);
+      border-radius: 10px;
+      background: rgba(255,252,244,.5);
+      padding: clamp(28px,6vw,52px);
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      margin-bottom: 1.2rem;
+    }
+    .zone.over { border-color: var(--ink); background: rgba(255,252,244,.95); color: var(--ink); }
+    .zone b { color: var(--ink); font-weight: 700; }
+
+    .row { display: flex; gap: .6rem; margin-bottom: 1.2rem; }
+    input[type=text], input[type=url] {
+      flex: 1; font: inherit; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 999px;
+      background: rgba(255,252,244,.65); padding: .55rem 1.1rem; outline: none;
+    }
+    input:focus { border-color: var(--muted); }
+    button {
+      font: inherit; font-weight: 700; cursor: pointer;
+      color: var(--paper); background: var(--ink);
+      border: 0; border-radius: 999px; padding: .55rem 1.3rem;
+      white-space: nowrap;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    label.album { display: block; color: var(--muted); font-size: .9rem; margin: 0 0 .3rem .4rem; }
+    #album { margin-bottom: 1.6rem; }
+
+    #log { border-top: 1px solid var(--soft-line); padding-top: 1rem; font-size: .95rem; }
+    #log p { margin: 0 0 .35rem; }
+    #log .ok::before { content: "✓ "; color: #456f44; }
+    #log .bad { color: #9a5b2e; }
+    #log .bad::before { content: "✗ "; }
+    .hint { color: var(--muted); font-size: .9rem; margin-top: 2rem; border-top: 1px solid var(--soft-line); padding-top: 1rem; }
+    .hint code { font-family: ui-monospace, Menlo, monospace; font-size: .85em; background: var(--field); padding: .08em .35em; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>add</h1>
+      <p class="back"><a href="/">← back to the library</a></p>
+    </header>
+
+    <label class="album" for="album">album (optional)</label>
+    <div class="row"><input type="text" id="album" placeholder="e.g. japan-2026 — blank means no album"></div>
+
+    <div class="zone" id="zone" role="button" tabindex="0" aria-label="Drop photos here or click to choose">
+      <b>drop photos here</b><br>or click to choose files
+      <input type="file" id="picker" accept="image/*,video/*" multiple hidden>
+    </div>
+
+    <div class="row">
+      <input type="url" id="url" placeholder="…or paste a link to a photo">
+      <button id="import">import link</button>
+    </div>
+
+    <div id="log"></div>
+
+    <p class="hint">
+      From your phone: open this page in Safari and use the picker, or make an iOS Shortcut that
+      <code>POST</code>s <code>{"url": …}</code> to <code>/api/import-url</code> after logging in once in the browser
+      (the session cookie lasts 30 days).
+    </p>
+  </main>
+
+  <script>
+    const zone = document.querySelector("#zone");
+    const picker = document.querySelector("#picker");
+    const log = document.querySelector("#log");
+    const albumEl = document.querySelector("#album");
+
+    const note = (cls, msg) => {
+      const p = document.createElement("p");
+      p.className = cls; p.textContent = msg;
+      log.prepend(p);
+    };
+
+    const fileToPayload = f => new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve({ name: f.name, type: f.type, data: String(r.result) });
+      r.onerror = reject;
+      r.readAsDataURL(f);
+    });
+
+    async function upload(files) {
+      const list = [...files];
+      if (!list.length) return;
+      note("", `reading ${list.length} file${list.length > 1 ? "s" : ""}…`);
+      const payloads = await Promise.all(list.map(fileToPayload));
+      note("", `uploading…`);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ album: albumEl.value, files: payloads }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) return note("bad", `upload failed (${res.status}${data.error ? ": " + data.error : ""})`);
+      for (const a of data.added) a.ok ? note("ok", a.name) : note("bad", `${a.name}: ${a.error}`);
+      note("", "done — back at the library they’re at the top.");
+    }
+
+    async function importUrl() {
+      const input = document.querySelector("#url");
+      const url = input.value.trim();
+      if (!url) return;
+      const btn = document.querySelector("#import");
+      btn.disabled = true;
+      note("", `fetching ${url}…`);
+      const res = await fetch("/api/import-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, album: albumEl.value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      btn.disabled = false;
+      if (res.ok && data.ok) { note("ok", `${data.name} imported`); input.value = ""; }
+      else note("bad", data.error || `failed (${res.status})`);
+    }
+
+    zone.addEventListener("click", () => picker.click());
+    zone.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") picker.click(); });
+    picker.addEventListener("change", () => { upload(picker.files); picker.value = ""; });
+    ["dragenter", "dragover"].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add("over"); }));
+    ["dragleave", "drop"].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove("over"); }));
+    zone.addEventListener("drop", e => upload(e.dataTransfer.files));
+    document.querySelector("#import").addEventListener("click", importUrl);
+    document.querySelector("#url").addEventListener("keydown", e => { if (e.key === "Enter") importUrl(); });
+
+    // whole-page paste: paste an image or a url anywhere
+    document.addEventListener("paste", e => {
+      const files = [...(e.clipboardData?.files || [])];
+      if (files.length) return upload(files);
+      const text = e.clipboardData?.getData("text")?.trim();
+      if (text && /^https?:\/\//.test(text) && document.activeElement?.tagName !== "INPUT") {
+        document.querySelector("#url").value = text;
+        importUrl();
+      }
+    });
+  </script>
+</body>
+</html>

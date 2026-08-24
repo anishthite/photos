@@ -105,6 +105,18 @@
     }
     .search input::placeholder { color: var(--muted); }
 
+    .dropbar { margin: -1.2rem 0 clamp(28px, 4vw, 44px); }
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      background: rgba(255, 252, 244, .65);
+      border-radius: 999px;
+      padding: .4rem 1rem;
+      color: var(--ink);
+      font-size: .95rem;
+    }
+    .pill:hover { background: rgba(255, 252, 244, .95); }
+
     /* day groups */
     .day { margin-bottom: clamp(30px, 5vw, 52px); }
 
@@ -243,6 +255,10 @@
       <span aria-hidden="true">⌕</span>
       <input id="q" type="search" placeholder="Search photos, albums, dates…" aria-label="Search photos">
     </label>
+
+    <div class="dropbar">
+      <a class="pill" href="/upload">＋ add photos or a link</a>
+    </div>
 
     <div id="library" aria-live="polite"><p class="empty">Loading photos…</p></div>
   </main>

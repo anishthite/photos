@@ -96,7 +96,9 @@
         <div class="stack">
           <div class="box"><b>R2 bucket “photos-library”</b><span>private — originals live here, no public access, bound to Pages as <code>PHOTOS</code></span></div>
           <div class="arrow">↑ <em>read only via…</em></div>
-          <div class="box"><b>Pages Functions</b><span><code>_middleware</code> gates every path — no signed cookie → 302 /login · <code>/media/*</code> streams from R2 with Range support · <code>/api/login</code> checks PHOTOS_PASSWORD secret, sets HMAC-SHA256 cookie (30 days, HttpOnly, Secure)</span></div>
+          <div class="box"><b>Pages Functions</b><span><code>_middleware</code> gates every path → 302 /login without a signed cookie · <code>/media/*</code> streams from R2 (Range support) · <code>/api/login</code> checks PHOTOS_PASSWORD, sets HMAC cookie · <code>/api/upload</code> + <code>/api/import-url</code> write new photos into R2 &amp; the index · <code>/data/photos.json</code> serves the index from R2</span></div>
+          <div class="arrow">↑↓ <em>add photos three ways</em></div>
+          <div class="box"><b>Ingestion</b><span>· drag-drop / paste on <code>/upload</code> (browser or phone) · iOS Shortcut → <code>/api/import-url</code> (share a link) · <code>scripts/add_photos.sh</code> from the CLI</span></div>
           <div class="arrow">↓</div>
           <div class="box"><b>Pages project “photos”</b><span>static assets + functions at <code>photos-erv.pages.dev</code> — live</span></div>
           <div class="arrow">↓ <em>DNS pending</em></div>
@@ -110,10 +112,9 @@
     <section class="flow">
       <h2>Add-a-photo flow</h2>
       <ol>
-        <li><code>scripts/add_photos.sh ~/Desktop/vacation</code> — copies images into local <code>photos/</code> (optional album subfolder)</li>
-        <li><code>build_library.py</code> regenerates <code>data/photos.json</code></li>
-        <li>objects uploaded to the private R2 bucket via <code>wrangler r2 object put</code></li>
-        <li><code>wrangler pages deploy</code> ships shell + functions (~2 s); media streams through <code>/media/*</code> behind the auth cookie</li>
+        <li><b>On the site:</b> open <code>/upload</code>, drag files / paste from clipboard / paste a link → <code>/api/upload</code> or <code>/api/import-url</code> writes to R2 and updates the index. No terminal needed.</li>
+        <li><b>From iPhone:</b> a Shortcut POSTs <code>{"url":…}</code> to <code>/api/import-url</code>; your 30-day login cookie authenticates it.</li>
+        <li><b>From the CLI:</b> <code>scripts/add_photos.sh ~/Desktop/vacation</code> → copies in, rebuilds index, uploads to R2, redeploys.</li>
       </ol>
       <p class="status"><b>Security:</b> private R2 (no public URL) · password gate on every route · HMAC-signed cookies · path traversal rejected · Range requests for video scrubbing. <b>Source:</b> <a href="https://github.com/anishthite/photos">github.com/anishthite/photos</a> (code only; photos gitignored). <b>Status:</b> pages.dev live + secured · custom domain pending one DNS record.</p>
     </section>

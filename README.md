@@ -4,7 +4,11 @@ A Google Photos-style library, in the style of [thite.site](https://thite.site) 
 
 ## Adding photos
 
-One command — copies files in, rebuilds the index, and redeploys to Cloudflare Pages:
+**Easiest — right on the site:** open `/upload` (there's an "＋ add photos or a link" pill on the homepage) and drag files in, paste from the clipboard, or paste a link to a photo. Files go straight to R2 and the index updates itself — no local machine needed. Works on your phone.
+
+**From your phone's share sheet:** make an iOS Shortcut that POSTs JSON to `https://photos-erv.pages.dev/api/import-url` with body `{"url": "<shortcut input>", "album": "mobile"}` — after you've logged in once in Safari, the 30-day cookie carries over.
+
+**From the command line** (bulk imports):
 
 ```sh
 scripts/add_photos.sh ~/Desktop/vacation           # import a folder of images
@@ -33,7 +37,7 @@ wrangler pages deploy . --project-name photos --branch main --commit-dirty=true
 
 - `index.html` — the photo app (grid, search, lightbox)
 - `login.html` — password gate page
-- `functions/` — Pages Functions: `_middleware.js` (auth gate), `api/login.js` (session cookie), `media/[[key]].js` (R2 proxy with Range support)
+- `functions/` — Pages Functions: `_middleware.js` (auth gate), `api/login.js` (session cookie), `api/upload.js` + `api/import-url.js` (add photos/files/links → R2), `media/[[key]].js` (R2 proxy with Range support), `data/photos.json.js` (index served from R2)
 - `photos/` — local originals (gitignored; the live copies are in R2)
 - `data/photos.json` — generated library index
 - `scripts/build_library.py` — scanner that builds the index
