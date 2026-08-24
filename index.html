@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>photos · thite.site</title>
+  <meta name="description" content="A small photo library, in the style of thite.site.">
+  <link rel="icon" href="data:,">
+  <style>
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-roman-line-figures.woff") format("woff");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "et-book";
+      src: url("assets/fonts/et-book-bold-line-figures.woff") format("woff");
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      --ink: #2d251e;
+      --muted: #716657;
+      --paper: #fbf8ef;
+      --field: #f1eadc;
+      --line: #d8c8aa;
+      --soft-line: rgba(138, 108, 68, .18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--field); }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 14% 8%, rgba(255, 255, 255, .72), transparent 28rem),
+        linear-gradient(90deg, rgba(112, 82, 42, .022) 1px, transparent 1px),
+        linear-gradient(var(--paper), var(--field));
+      background-size: auto, 30px 30px, auto;
+      background-attachment: fixed;
+      color: var(--ink);
+      font: 17px/1.56 et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+      font-kerning: normal;
+      font-feature-settings: "kern" 1;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: min(1200px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: clamp(36px, 7vw, 82px) 0 76px;
+    }
+
+    .hero {
+      margin-bottom: clamp(30px, 5vw, 50px);
+      padding-bottom: clamp(20px, 4vw, 34px);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3.4rem, 13vw, 8rem);
+      line-height: .82;
+      letter-spacing: -.025em;
+      font-weight: 400;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    /* search bar — the one google-photos-ish chrome element, paperized */
+    .search {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      border: 1px solid var(--line);
+      background: rgba(255, 252, 244, .65);
+      border-radius: 999px;
+      padding: .5rem 1.1rem;
+      margin-bottom: clamp(28px, 4vw, 44px);
+      color: var(--muted);
+    }
+    .search input {
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font: inherit;
+      color: var(--ink);
+      width: 100%;
+    }
+    .search input::placeholder { color: var(--muted); }
+
+    /* day groups */
+    .day { margin-bottom: clamp(30px, 5vw, 52px); }
+
+    .day-head {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      border-bottom: 1px solid var(--soft-line);
+      padding-bottom: .3rem;
+      margin-bottom: .8rem;
+    }
+    .day-head h2 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3.4vw, 2.1rem);
+      line-height: .95;
+      letter-spacing: -.01em;
+      font-weight: 400;
+    }
+    .day-head .album { color: var(--muted); font-size: .95rem; }
+
+    /* justified-feeling grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 4px;
+    }
+    @media (max-width: 680px) {
+      .grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 3px; }
+    }
+
+    .cell {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: var(--field);
+      border: 0;
+      padding: 0;
+      cursor: zoom-in;
+      display: block;
+      width: 100%;
+    }
+    .cell img, .cell video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .25s ease;
+    }
+    .cell:hover img, .cell:focus-visible img { transform: scale(1.04); }
+    .cell .badge {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      background: rgba(45, 37, 30, .72);
+      color: var(--paper);
+      font-size: .72rem;
+      line-height: 1;
+      padding: .28rem .42rem;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+    .empty {
+      margin: 0;
+      padding: 1rem 0;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--soft-line);
+    }
+
+    /* lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(45, 37, 30, .9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox figure {
+      margin: 0;
+      max-width: min(1100px, 92vw);
+      text-align: center;
+    }
+    .lightbox img, .lightbox video {
+      max-width: 100%;
+      max-height: 80vh;
+      background: #111;
+    }
+    .lightbox figcaption {
+      color: var(--paper);
+      padding-top: .8rem;
+      font-size: 1rem;
+    }
+    .lightbox figcaption .sub { color: rgba(251, 248, 239, .6); }
+    .lb-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: 0;
+      color: var(--paper);
+      font: inherit;
+      font-size: 2.4rem;
+      padding: 1rem 1.4rem;
+      cursor: pointer;
+      opacity: .7;
+    }
+    .lb-btn:hover { opacity: 1; }
+    .lb-prev { left: 0; }
+    .lb-next { right: 0; }
+    .lb-close {
+      position: absolute;
+      top: .6rem;
+      right: 1rem;
+      transform: none;
+      font-size: 1.6rem;
+    }
+
+    @media (max-width: 680px) {
+      body { font-size: 16px; }
+      .page { width: calc(100% - 24px); padding-top: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero" aria-labelledby="title">
+      <h1 id="title">photos</h1>
+      <span class="count" id="count"></span>
+    </header>
+
+    <label class="search">
+      <span aria-hidden="true">⌕</span>
+      <input id="q" type="search" placeholder="Search photos, albums, dates…" aria-label="Search photos">
+    </label>
+
+    <div id="library" aria-live="polite"><p class="empty">Loading photos…</p></div>
+  </main>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="lb-btn lb-close" id="lbClose" aria-label="Close">×</button>
+    <button class="lb-btn lb-prev" id="lbPrev" aria-label="Previous photo">‹</button>
+    <figure>
+      <div id="lbMedia"></div>
+      <figcaption id="lbCaption"></figcaption>
+    </figure>
+    <button class="lb-btn lb-next" id="lbNext" aria-label="Next photo">›</button>
+  </div>
+
+  <script>
+    const library = document.querySelector('#library');
+    const countEl = document.querySelector('#count');
+    const q = document.querySelector('#q');
+
+    const esc = (v = '') => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    let photos = [];   // full library, newest first
+    let visible = [];  // filtered view
+    let lbIndex = 0;
+
+    const fmtDay = iso => {
+      const d = new Date(iso + 'T12:00:00');
+      const today = new Date(); today.setHours(12, 0, 0, 0);
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      if (d.getTime() === today.getTime()) return 'Today';
+      if (d.getTime() === yesterday.getTime()) return 'Yesterday';
+      return d.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    function groupByDay(rows) {
+      const days = new Map();
+      for (const p of rows) {
+        if (!days.has(p.date)) days.set(p.date, []);
+        days.get(p.date).push(p);
+      }
+      return [...days.entries()].map(([date, items]) => ({
+        date,
+        items,
+        albums: [...new Set(items.map(i => i.album).filter(Boolean))],
+      }));
+    }
+
+    function cellHtml(p) {
+      const idx = visible.indexOf(p);
+      const media = p.kind === 'video'
+        ? `<video src="${esc(p.src)}" muted preload="metadata"></video><span class="badge">▶ video</span>`
+        : `<img src="${esc(p.src)}" alt="${esc(p.name)}" loading="lazy">`;
+      return `<button class="cell" data-idx="${idx}" aria-label="Open ${esc(p.name)}">${media}</button>`;
+    }
+
+    function render() {
+      visible = photos;
+      countEl.textContent = photos.length
+        ? `${photos.length} item${photos.length === 1 ? '' : 's'}`
+        : '';
+      if (!photos.length) {
+        library.innerHTML = `<p class="empty">No photos yet. Drop images into <code>photos/</code> and run <code>python3 scripts/build_library.py</code>.</p>`;
+        return;
+      }
+      library.innerHTML = groupByDay(photos).map(day => `
+        <section class="day" aria-label="${esc(fmtDay(day.date))}">
+          <div class="day-head">
+            <h2>${esc(fmtDay(day.date))}</h2>
+            ${day.albums.length ? `<span class="album">${esc(day.albums.join(' · '))}</span>` : ''}
+          </div>
+          <div class="grid">${day.items.map(cellHtml).join('')}</div>
+        </section>
+      `).join('');
+    }
+
+    function applyFilter() {
+      const needle = q.value.trim().toLowerCase();
+      photos = needle
+        ? all.filter(p => [p.name, p.album, p.date, p.kind].join(' ').toLowerCase().includes(needle))
+        : all;
+      render();
+    }
+
+    /* lightbox */
+    const lb = document.querySelector('#lightbox');
+    const lbMedia = document.querySelector('#lbMedia');
+    const lbCaption = document.querySelector('#lbCaption');
+
+    function openLb(idx) {
+      lbIndex = (idx + visible.length) % visible.length;
+      const p = visible[lbIndex];
+      lbMedia.innerHTML = p.kind === 'video'
+        ? `<video src="${esc(p.src)}" controls autoplay></video>`
+        : `<img src="${esc(p.src)}" alt="${esc(p.name)}">`;
+      lbCaption.innerHTML = `${esc(p.name)} <span class="sub">· ${esc(fmtDay(p.date))}${p.album ? ' · ' + esc(p.album) : ''}</span>`;
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLb() {
+      lb.classList.remove('open');
+      lbMedia.innerHTML = '';
+      document.body.style.overflow = '';
+    }
+
+    library.addEventListener('click', e => {
+      const cell = e.target.closest('.cell');
+      if (cell) openLb(Number(cell.dataset.idx));
+    });
+    document.querySelector('#lbClose').addEventListener('click', closeLb);
+    document.querySelector('#lbPrev').addEventListener('click', () => openLb(lbIndex - 1));
+    document.querySelector('#lbNext').addEventListener('click', () => openLb(lbIndex + 1));
+    lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+    document.addEventListener('keydown', e => {
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLb();
+      if (e.key === 'ArrowLeft') openLb(lbIndex - 1);
+      if (e.key === 'ArrowRight') openLb(lbIndex + 1);
+    });
+
+    let all = [];
+    q.addEventListener('input', applyFilter);
+
+    async function boot() {
+      try {
+        const res = await fetch('data/photos.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const data = await res.json();
+        all = (data.photos || []).slice().sort((a, b) => b.ts - a.ts);
+        photos = all;
+        render();
+      } catch (err) {
+        library.innerHTML = `<p class="empty">data/photos.json failed: ${esc(err.message)}. Run <code>python3 scripts/build_library.py</code>.</p>`;
+      }
+    }
+    boot();
+  </script>
+</body>
+</html>

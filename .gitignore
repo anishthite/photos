@@ -1,0 +1,5 @@
+photos/*
+!photos/.gitkeep
+data/photos.json
+__pycache__/
+.DS_Store
